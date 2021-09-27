@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<!-- Tecnologias usadas -->
+<!-- Vue, Vuetify, Vuelidate, VueSweetAlert, V-mask -->
+<html lang="pt-BR">
+
+<head>
+    <meta charset=”UTF-8”>
+    <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@mdi/font@4.x/css/materialdesignicons.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.min.css" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui">
+    <style>
+    </style>
+</head>
+
+<body>
+    <div id="app">
+
+        <v-app>
+            <v-app-bar app dense>
+                <span class="">PhoneBook <v-icon color="green darken-2">
+                        mdi-phone
+                    </v-icon>
+                </span>
+                <v-spacer></v-spacer>
+            </v-app-bar>
+            <v-main>
+                <v-container>
+
+                    <v-row class="py-5 d-flex justify-content-end " style="justify-content: end;">
+                        <v-dialog v-model="dialogNewUser" persistent max-width="600px">
+                            <template v-slot:activator="{ on, attrs }">
+                                <v-btn color="primary" dark v-bind="attrs" v-on="on" class="btn-mobile">
+                                    Adicionar Contato +
+                                </v-btn>
+                            </template>
+                            <v-card>
+                                <v-card-title class="d-flex justify-content-center align-center">
+                                    <span class=" text-center">Informações de contato</span>
+                                </v-card-title>
+                                <v-card-text>
+                                    <v-container>
+                                        <v-row>
+                                            <v-col cols="12" sm="12" md="8">
+                                                <v-text-field label="Nome completo" required v-model.trim="user.name"
+                                                    :append-icon="$v.user.name.$error ?? $v.user.name.minLength ? 'mdi-close' :''">
+                                                </v-text-field>
+                                                <p class="red--text"
+                                                    v-if="$v.user.name.$error  && !$v.user.name.required ">
+                                                    Esse campo é obrigatório *
+                                                </p>
+
+                                                <p class="red--text" v-if="this.full_name.length == 1">
+                                                    Digite o Nome e Sobrenome *
+                                                </p>
+                                                <p class="red--text"
+                                                    v-if=" showMsgFirstName || !$v.user.name.minLength">
+                                                    Nome e Sobrenome devem possuir 3 letras *
+                                                </p>
+
+                                            </v-col>
+                                            <v-col cols="12" sm="12" md="4">
+                                                <v-text-field label="Número de telefone" v-model="user.phone_number"
+                                                    v-mask="'(##)####-####'"
+                                                    :append-icon="$v.user.phone_number.$error ?? $v.user.name.minLength ? 'mdi-close' :''"
+                                                    @keyup.enter="save()">
+                                                </v-text-field>
+                                                <p class="red--text"
+                                                    v-if="$v.user.phone_number.$error && !$v.user.phone_number.required ">
+                                                    Esse campo é obrigatório *</p>
+
+                                                <p class="red--text"
+                                                    v-if="$v.user.phone_number.required && !$v.user.phone_number.minLength">
+                                                    Por favor digite um número válido *
+                                                </p>
+                                            </v-col>
+
+                                        </v-row>
+                                    </v-container>
+                                </v-card-text>
+                                <v-card-actions>
+                                    <v-spacer></v-spacer>
+                                    <v-btn color="blue darken-1" text @click="cancel()">
+                                        Cancelar
+                                    </v-btn>
+                                    <v-btn color="blue darken-1" text @click="save()">
+                                        Salvar
+                                    </v-btn>
+                                </v-card-actions>
+                            </v-card>
+                        </v-dialog>
+                    </v-row>
+
+                    <h1 class="text-center my-5">
+                        A melhor maneira de salvar seus contatos!
+                    </h1>
+                    <div v-if="users.length == 0">
+                        <h1 class="text-center mt-5  text--lighten-1">Agenda vazia...</h1>
+                        <p class="text-center mt-4">Adicione seus primeiros contatos</p>
+                    </div>
+
+                    <v-data-table :headers="headers" :items="users" item-class="color" class="elevation-1" v-else
+                        :footer-props="{ 'items-per-page-text':'Contatos por página'}">
+                        <template v-slot:[`item.actions`]="{ item }">
+                            <div :style="item.color">
+                                <v-icon class="mr-2" color="orange" @click="editUser(item)">mdi-pencil</v-icon>
+                                <v-icon color="red" @click="deleteUser(item)">mdi-delete</v-icon>
+                            </div>
+                        </template>
+                    </v-data-table>
+
+                    <v-dialog v-model="dialogEditUser" persistent max-width="600px" :retain-focus="false">
+                        <v-card>
+                            <v-card-title class="d-flex justify-content-center align-center">
+                                <span class=" text-center">Edição de contato</span>
+                            </v-card-title>
+                            <v-card-text>
+                                <v-container>
+                                    <v-row>
+                                        <v-col cols="12" sm="12" md="8">
+                                            <v-text-field label="Nome completo" required v-model.trim="EditUser.name">
+                                            </v-text-field>
+                                            <p class="red--text" v-if="!$v.EditUser.name.required ">
+                                                Esse campo é obrigatório *
+                                            </p>
+
+                                            <p class="red--text" v-if="this.full_name.length == 1">
+                                                Digite o Nome e Sobrenome *
+                                            </p>
+
+                                            <p class="red--text" v-if="showMsgFirstName">
+                                                Nome e Sobrenome devem possuir 3 letras *
+                                            </p>
+                                        </v-col>
+                                        <v-col cols="12" sm="12 " md="4">
+                                            <v-text-field label="Número de telefone" v-model="EditUser.phone_number"
+                                                v-mask="'(##)####-####'">
+                                            </v-text-field>
+                                            <p class="red--text" v-if="!$v.EditUser.phone_number.required ">
+                                                Esse campo é obrigatório *</p>
+
+                                            <p class="red--text"
+                                                v-if="$v.EditUser.phone_number.required && !$v.EditUser.phone_number.minLength">
+                                                Por favor digite um número válido *
+                                            </p>
+                                        </v-col>
+                                    </v-row>
+                                </v-container>
+                            </v-card-text>
+                            <v-card-actions>
+                                <v-spacer></v-spacer>
+                                <v-btn color="blue darken-1" text @click="cancel()">
+                                    Cancelar
+                                </v-btn>
+                                <v-btn color="blue darken-1" text @click="saveEdit(EditUser)">
+                                    Salvar
+                                </v-btn>
+                            </v-card-actions>
+                        </v-card>
+                    </v-dialog>
+
+                    <v-footer app bottom fixed padless>
+                        <v-col class="text-center" cols="12">
+                            <p> Feito com &#10084 por <strong>Jefferson Leite </strong>
+
+                            </p>
+                        </v-col>
+                    </v-footer>
+                </v-container>
+            </v-main>
+        </v-app>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const Swal = SweetAlert;
+            Vue.use(VueMask.VueMaskPlugin)
+            Vue.use(window.vuelidate.default)
+            const { required, minLength } = window.validators
+
+            new Vue({
+                el: '#app',
+                data() {
+                    return {
+                        users: [],
+                        user: {},
+                        EditUser: {},
+                        first_name: '',
+                        last_name: '',
+                        full_name: [],
+                        dialogNewUser: false,
+                        dialogDelete: false,
+                        dialogEditUser: false,
+                        showMsgFirstName: false,
+                        headers: [
+                            { text: "Nome", align: "start", sortable: true, value: "name" },
+                            { text: "Número de telefone", value: "phone_number", sortable: false },
+                            { text: "", value: "actions", sortable: false },
+                        ],
+                    }
+                },
+                validations: {
+                    user: {
+                        name: {
+                            required,
+                            minLength: minLength(3)
+                        },
+                        phone_number: {
+                            required,
+                            minLength: minLength(13)
+                        }
+                    },
+                    EditUser: {
+                        name: {
+                            required,
+                            minLength: minLength(3)
+                        },
+                        phone_number: {
+                            required,
+                            minLength: minLength(13)
+                        }
+                    },
+                },
+                methods: {
+                    save() {
+                        let idNewUser = 1
+                        if (this.users.length != 0) {
+                            let length = this.users.length - 1
+                            idNewUser = this.users[length].id + 1
+                        }
+                        this.$v.$touch() //validação dos campos
+                        if (!this.$v.user.$error) {
+                            this.array_full_name = this.user.name.split(' ')
+                            this.full_name = this.array_full_name.filter(String) //tratando os espaços em branco entre os nomes
+                            if (this.full_name.length != 1) {
+                                this.first_name = this.full_name[0]
+                                this.last_name = this.full_name[1]
+
+                                if (this.first_name.length <= 2 || this.last_name.length <= 2) {
+                                    this.showMsgFirstName = true
+                                    return
+                                }
+                                this.full_name = []
+                                this.users.push({ id: idNewUser, ...this.user })
+                                Swal.fire({
+                                    title: 'Adicionado!',
+                                    text: 'Contato adicionado com sucesso!',
+                                    icon: 'success',
+                                });
+                                this.cancel()
+                                this.user = {}
+                                this.$v.$reset()
+                            }
+                        }
+                        this.setColor()
+                        this.setItemLocalStorage()
+                    },
+                    editUser(user) {
+                        user.name = user.name.split(' ').filter(partOfName => partOfName != '').join(' ') //remover espacos em branco entre os nomes
+                        this.full_name = []
+                        this.EditUser = {
+                            ...user
+                        }
+                        this.dialogEditUser = true
+                    },
+                    saveEdit(user) {
+                        let atualUser = this.users.findIndex(editUser => editUser.id == user.id)
+                        this.array_full_name = user.name.split(' ')
+                        this.full_name = this.array_full_name.filter(String)
+                        this.$v.$touch()
+
+                        this.first_name = this.full_name[0]
+                        this.last_name = this.full_name[1]
+
+                        if (this.first_name && this.last_name) {
+                            if (this.first_name.length <= 2 || this.last_name.length <= 2) {
+                                this.showMsgFirstName = true
+                                return
+                            }
+                            if (!this.$v.EditUser.$error) {
+                                this.users[atualUser].name = user.name
+                                this.users[atualUser].id = user.id
+                                this.users[atualUser].phone_number = user.phone_number
+                                this.dialogEditUser = false
+                                Swal.fire({
+                                    title: 'Editado!',
+                                    text: 'Contato Editado com sucesso!',
+                                    icon: 'success',
+                                });
+                                this.cancel()
+                            }
+                        }
+                        this.setColor()
+                        this.setItemLocalStorage()
+                    },
+                    deleteUser(userDelete) {
+                        Swal.fire({ //msg de confirmação
+                            title: "Deletar",
+                            icon: 'error',
+                            text: `Tem certeza que deseja deletar ${userDelete.name}?`,
+                            showCancelButton: true,
+                            confirmButtonColor: "green",
+                            cancelButtonColor: "red",
+                            confirmButtonText: "SIM",
+                            cancelButtonText: 'NÃO'
+                        }).then((result) => {
+                            if (result.value) { // Confirmado
+                                this.users = this.users.filter(user => user.id != userDelete.id)
+                                Swal.fire({
+                                    title: 'Apagado!',
+                                    text: 'Contato Apagado com sucesso!',
+                                    icon: 'success',
+                                });
+                            }
+                            this.dialogDelete = true
+                            this.setItemLocalStorage()
+                        });
+                    },
+                    cancel() {
+                        this.showMsgFirstName = false
+                        this.dialogEditUser = false
+                        this.dialogNewUser = false
+                        this.$v.$reset()
+                        this.user = {}
+
+
+                    },
+                    setItemLocalStorage() {
+                        return localStorage.setItem('Usuarios', JSON.stringify(this.users))
+                    },
+                    getItemLocalStorage() {
+                        return JSON.parse(localStorage.getItem('Usuarios'))
+                    },
+                    setColor() {
+                        this.users.map(user => {
+                            const DDD = String(user.phone_number).substr(1, 2)
+                            return DDD == 11 ? user.color = 'light-blue' : user.color = 'white'
+                        })
+                    },
+                },
+                created: function () {
+                    this.usuarios = this.getItemLocalStorage()
+                    this.users = !!this.usuarios ? this.usuarios : []
+                    this.setColor()
+                },
+                vuetify: new Vuetify(),
+            })
+        })
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.x/dist/vue.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/v-mask/dist/v-mask.min.js"></script>
+    <script src="https://unpkg.com/vuelidate/dist/validators.min.js"></script>
+    <script src="https://unpkg.com/vuelidate/dist/vuelidate.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@9"></script>
+</body>
+
+</html>
