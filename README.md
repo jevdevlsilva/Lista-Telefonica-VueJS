@@ -43,7 +43,6 @@ Sempre que fechar ou abrir a agenda novamente, todos os contatos adiconados perm
 - [x] Validação de campos
 - [x] Caso DDD seja (11) linha na cor azul
 - [X] Responsivo
-- [x] Caso DDD seja (11) linha na cor azul
 - [ ] Não salvar contatos duplicados
 
 
